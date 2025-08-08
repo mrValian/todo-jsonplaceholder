@@ -52,15 +52,6 @@ body {
     flex: 1 1 auto;
 }
 
-/* .taskWrapBtn {
-	background: purple;
-    padding: 10px;
-    box-sizing: border-box;
-    border-radius: 10px;
-    display: flex;
-    gap: 5px;
-} */
-
 .showTodo {
     height: 100%;
 }
