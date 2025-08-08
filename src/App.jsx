@@ -125,7 +125,7 @@ export const App = () => {
 		}
 	};
 
-	const onChangeFilter = ({ target }) => {
+	const onBlurFilter = ({ target }) => {
 		let value = target.value.toLowerCase();
 		let filterDataInput = todos.filter((elem) => {
 			return elem.todo.toLowerCase().includes(value);
@@ -183,7 +183,7 @@ export const App = () => {
 		<div className={showFlag ? style.hide : style.show}>
 			<h1 className={style.title}>Todo List</h1>
 			<p className={style.findTitle}>Найти</p>
-			<input type="text" placeholder="Найти To Do" onChange={onChangeFilter} />
+			<input type="text" placeholder="Найти To Do" onBlur={onBlurFilter} />
 			{isLoading ? (
 				<div className={style.loader}></div>
 			) : (
