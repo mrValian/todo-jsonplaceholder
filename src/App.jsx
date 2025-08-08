@@ -1,4 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import {
+	Routes,
+	Route,
+	NavLink,
+	useParams,
+	useNavigate,
+} from 'react-router-dom';
 import style from './app.module.css';
 
 import {
@@ -9,6 +16,8 @@ import {
 } from './hooks';
 
 export const App = () => {
+	const [showFlag, setShowFlag] = useState(false);
+
 	const [isVisible, setIsVisible] = useState(false);
 
 	const [refreshToDoFlag, setRefreshToDoFlag] = useState(false);
@@ -116,7 +125,7 @@ export const App = () => {
 		}
 	};
 
-	const onChangeFilter = ({target}) => {
+	const onChangeFilter = ({ target }) => {
 		let value = target.value.toLowerCase();
 		let filterDataInput = todos.filter((elem) => {
 			return elem.todo.toLowerCase().includes(value);
@@ -125,28 +134,76 @@ export const App = () => {
 		setSortFlag(false);
 	};
 
-	return (
-		<div className={style.app}>
+	const Todo = () => {
+		const [showTodo, setShowTodo] = useState(null);
+
+		const params = useParams();
+		const navigate = useNavigate();
+		useEffect(() => {
+			fetch(`http://localhost:3000/todos/${params.id}`)
+				.then((response) => {
+					return response.json();
+				})
+				.then((data) => {
+					setShowTodo(data);
+				})
+				.finally(() => {
+					setIsLoading(false);
+				});
+		}, [params.id]);
+
+		const { todo: point } = showTodo || {};
+
+		return isLoading ? (
+			<div className={style.loader}></div>
+		) : (
+			<div className={style.showTodo}>
+				<div className={style.oneTodo}>{point}</div>
+				<button
+					onClick={() => {
+						setShowFlag(false);
+						navigate('/');
+					}}
+				>
+					back
+				</button>
+				<div>
+					<button data-id={params.id} onClick={onClickUpdateToDo}>
+						update
+					</button>
+					<button data-id={params.id} onClick={onDeleteToDo}>
+						delete
+					</button>
+				</div>
+			</div>
+		);
+	};
+
+	const Main = () => (
+		<div className={showFlag ? style.hide : style.show}>
 			<h1 className={style.title}>Todo List</h1>
 			<p className={style.findTitle}>Найти</p>
-			<input type="text" placeholder='Найти To Do' onChange={onChangeFilter} />
+			<input type="text" placeholder="Найти To Do" onChange={onChangeFilter} />
 			{isLoading ? (
 				<div className={style.loader}></div>
 			) : (
-				(sortedList.length === 0 && sortFlag ? todos : sortedList).map(({ id, todo }) => (
-					<div className={style.task} key={id}>
-						<div className={style.taskId}>{id}</div>
-						<div className={style.taskDo}>{todo}</div>
-						<div className={style.taskWrapBtn}>
-							<button data-id={id} onClick={onClickUpdateToDo}>
-								update
-							</button>
-							<button data-id={id} onClick={onDeleteToDo}>
-								delete
-							</button>
-						</div>
-					</div>
-				))
+				(sortedList.length === 0 && sortFlag ? todos : sortedList).map(
+					({ id, todo }) => (
+						<NavLink
+							onClick={() => {
+								setIsLoading(true);
+							}}
+							to={`/todos/${id}`}
+							className={style.task}
+							key={id}
+						>
+							<div className={style.taskId}>{id}</div>
+							<div className={style.taskDo}>
+								{todo.length > 25 ? `${todo.slice(0, 30)}...` : todo}
+							</div>
+						</NavLink>
+					),
+				)
 			)}
 			{!isLoading && (
 				<>
@@ -160,6 +217,20 @@ export const App = () => {
 					<button onClick={sortAlphabet}>sort</button>
 				</>
 			)}
+		</div>
+	);
+
+	const NotFound = () => <div>404</div>;
+
+	return (
+		<div className={style.app}>
+			<div>
+				<Routes>
+					<Route path="/" element={<Main />} />
+					<Route path="/todos/:id" element={<Todo />} />
+					<Route path="*" element={<NotFound />} />
+				</Routes>
+			</div>
 
 			{isVisible && (
 				<div onClick={onModal} id="myModal" className={style.modal}>
