@@ -1,14 +1,30 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import style from '../app.module.css';
+import { fetchData, addDataToServer } from '../actions';
+import { useDispatch, useSelector } from 'react-redux';
+import { selectToDo } from '../selectors';
+import { Modal } from '../component';
 
-export const Main = ({setRefreshToDoFlag, refreshToDoFlag, todos, isLoading, setIsLoading, setIsVisible, isVisible, onModal, requestAddToDo, newToDo, setNewToDo, setIsCreating, onChangeAddToDo, isCreating}) => {
-    const [sortFlag, setSortFlag] = useState(true);
-    const [sortedList, setSortedList] = useState([]);
+export const Main = () => {
+	const dispatch = useDispatch();
+	const { data, loading } = useSelector(selectToDo);
+	const [show, setShow] = useState(false);
+	const [input, setInput] = useState('');
+	const [disabled, setDisabled] = useState(true);
 
-    const sortAlphabet = () => {
+	const [sortedList, setSortedList] = useState([]);
+	const [sortFlag, setSortedFlag] = useState(true);
+
+	useEffect(() => {
+		if(sortFlag) {
+			dispatch(fetchData());
+		}
+	}, [dispatch, sortFlag]);
+
+	const sortAlphabet = () => {
 		if (sortedList.length === 0) {
-			todos.sort((a, b) => {
+			data.sort((a, b) => {
 				if (a.todo < b.todo) {
 					return -1;
 				}
@@ -18,54 +34,67 @@ export const Main = ({setRefreshToDoFlag, refreshToDoFlag, todos, isLoading, set
 				return 0;
 			});
 
-			setSortedList(todos);
-			setSortFlag(true);
-		} else {
+			setSortedList(data);
+			setSortedFlag(false);
+		} else if (sortedList.length > 0) {
 			setSortedList([]);
-			setRefreshToDoFlag(!refreshToDoFlag);
-			setSortFlag(true);
+			setSortedFlag(true);
 		}
 	};
 
-    const onBlurFilter = ({ target }) => {
+	const onChangeFilter = ({ target }) => {
 		let value = target.value.toLowerCase();
-		let filterDataInput = todos.filter((elem) => {
+		let filterDataInput = data.filter((elem) => {
 			return elem.todo.toLowerCase().includes(value);
 		});
 		setSortedList(filterDataInput);
-		setSortFlag(false);
+		if (target.value.length > 1) {
+			setSortedFlag(false);
+		} else if (target.value.length <= 0) {
+			setSortedFlag(true);
+		}
 	};
 
-    const getRandomNumberInRange = (min, max) => {
+	const getRandomNumberInRange = (min, max) => {
 		return Math.floor(Math.random() * (max - min + 1)) + min;
 	};
 
-    const onAddNewToDo = (event) => {
+
+	const onAddNewToDo = (event) => {
 		event.preventDefault();
-		requestAddToDo({
-			todo: newToDo,
-			completed: false,
-			userId: getRandomNumberInRange(1, 100),
-		});
-		setIsVisible(!isVisible);
-		setNewToDo('');
-		setIsCreating(false);
+		dispatch(
+			addDataToServer({
+				todo: input,
+				completed: false,
+				userId: getRandomNumberInRange(1, 100),
+			}),
+		);
+		setInput('');
+		setDisabled(true);
+		setShow(false);
+	};
+
+	const onChangeAdToDo = ({ target }) => {
+		setInput(target.value);
+		if (target.value.length >= 10) {
+			setDisabled(false);
+		} else if (target.value.length < 10) {
+			setDisabled(true);
+		}
 	};
 
 	return (
 		<div>
 			<h1 className={style.title}>Todo List</h1>
 			<p className={style.findTitle}>Найти</p>
-			<input type="text" placeholder="Найти To Do" onBlur={onBlurFilter} />
-			{isLoading ? (
-				<div className={style.loader}></div>
-			) : (
-				(sortedList.length === 0 && sortFlag ? todos : sortedList).map(
-					({ id, todo }) => (
+			<input type="text" placeholder="Найти To Do" onChange={onChangeFilter} />
+			<div>
+				{loading ? (
+					<div className={style.loader}></div>
+				) : (
+					(sortedList.length === 0 && sortFlag ? data : sortedList).map(({ id, todo }) => (
 						<NavLink
-							onClick={() => {
-								setIsLoading(true);
-							}}
+							// onClick={() => {}}
 							to={`/todos/${id}`}
 							className={style.task}
 							key={id}
@@ -75,53 +104,27 @@ export const Main = ({setRefreshToDoFlag, refreshToDoFlag, todos, isLoading, set
 								{todo.length > 25 ? `${todo.slice(0, 30)}...` : todo}
 							</div>
 						</NavLink>
-					),
-				)
-			)}
-			{!isLoading && (
-				<>
-					<button
-						onClick={() => {
-							setIsVisible(!isVisible);
-						}}
-					>
-						add
-					</button>
-					<button onClick={sortAlphabet}>sort</button>
-				</>
-			)}
+					))
+				)}
+			</div>
+			<div>
+				<button
+					onClick={() => {
+						setShow(true);
+					}}
+				>
+					add
+				</button>
+				<button
+					onClick={() => {
+						sortAlphabet();
+					}}
+				>
+					sort
+				</button>
+			</div>
 
-
-                {isVisible && (
-				<div onClick={onModal} id="myModal" className={style.modal}>
-					<div className={style['modal-content']}>
-						<span id="myModalSpan" className={style.close}>
-							&times;
-						</span>
-						<div className={style.wrapAddFormToDo}>
-							<form
-								action="#"
-								className={style.addFormToDo}
-								onSubmit={onAddNewToDo}
-							>
-								<label htmlFor="todo">Добавить To Do</label>
-								<input
-									onChange={onChangeAddToDo}
-									id="todo"
-									type="text"
-									value={newToDo}
-									placeholder="Напичатайте что бы вы хотели сделать..."
-								/>
-								<p className={style.addFormToDoInfo}>
-									To Do должен содержать минимум 10 символов
-								</p>
-								<button disabled={!isCreating}>add</button>
-							</form>
-						</div>
-					</div>
-				</div>
-			)}
-
+			<Modal setShow={setShow} onChange={onAddNewToDo} onChangeAdToDo={onChangeAdToDo} input={input} disabled={disabled} show={show} btn='add' />
 		</div>
 	);
 };

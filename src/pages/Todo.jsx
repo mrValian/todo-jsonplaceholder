@@ -1,81 +1,56 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 import { useParams, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { updateDataRequest, deleteItemSuccess } from '../actions';
+import { selectToDo } from '../selectors';
 
 import style from '../app.module.css';
+import { Modal } from '../component';
 
-export const Todo = ({
-	setIsLoading,
-	setIsUpdating,
-	isUpdeting,
-	setToDoChange,
-	deletingToDo,
-	updatingToDo,
-	setIsVisible,
-	setNewToDo,
-	setIsCreating,
-	isLoading,
-	onModal,
-	onChangeAddToDo,
-	isVisible,
-	toDoChange,
-	isCreating,
-}) => {
-	const [showTodo, setShowTodo] = useState(null);
-	const [changeId, setChangeId] = useState(null);
-
+export const Todo = () => {
+	const dispatch = useDispatch();
 	const params = useParams();
 	const navigate = useNavigate();
 
-	useEffect(() => {
-		fetch(`http://localhost:3000/todos/${params.id}`)
-			.then((response) => {
-				return response.json();
-			})
-			.then((data) => {
-				setShowTodo(data);
-			})
-			.finally(() => {
-				setIsLoading(false);
-			});
-	}, [params.id, setIsLoading]);
+	const { data } = useSelector(selectToDo);
 
-	const { todo: point } = showTodo || {};
-
-	const onClickUpdateToDo = (id) => {
-		setIsLoading(true);
-		setIsUpdating(!isUpdeting);
-		setChangeId(id);
-		fetch(`http://localhost:3000/todos/${id}`)
-			.then((response) => {
-				return response.json();
-			})
-			.then((data) => {
-				setToDoChange(data);
-			})
-			.finally(() => {
-				setIsLoading(false);
-			});
-	};
+	const [show, setShow] = useState(false);
+	const [input, setInput] = useState(data.filter((elem) => elem.id == params.id)[0].todo);
+	const [disabled, setDisabled] = useState(true);
 
 	const onDeleteToDo = (id) => {
-		deletingToDo(id);
+		dispatch(deleteItemSuccess(id));
 		navigate('/');
 	};
 
-	const onUpadate = () => {
-		updatingToDo(changeId, { todo: toDoChange });
-		setIsVisible(!!isVisible);
-		setNewToDo('');
-		setIsCreating(false);
-		setIsUpdating(false);
+	const onChange = (event) => {
+		event.preventDefault();
+		dispatch(
+			updateDataRequest(params.id, {
+				todo: input,
+				completed: false,
+				userId: 90,
+			}),
+		);
+		setShow(false);
 	};
 
-	return isLoading ? (
-		<div className={style.loader}></div>
-	) : (
+	const onChangeAdToDo = ({ target }) => {
+		setInput(target.value);
+		if (target.value.length >= 10) {
+			setDisabled(false);
+		} else if (target.value.length < 10) {
+			setDisabled(true);
+		}
+	};
+
+	return (
 		<div className={style.showTodo}>
-			<div className={style.oneTodo}>{point}</div>
+			<div className={style.oneTodo}>
+				<h2>Выбраное задание:</h2>
+				{data.filter((elem) => elem.id == params.id)[0].todo}
+			</div>
 			<button
 				onClick={() => {
 					navigate('/');
@@ -86,7 +61,7 @@ export const Todo = ({
 			<div>
 				<button
 					onClick={() => {
-						onClickUpdateToDo(params.id);
+						setShow(true);
 					}}
 				>
 					update
@@ -100,38 +75,7 @@ export const Todo = ({
 				</button>
 			</div>
 
-			{isUpdeting &&
-				(isLoading ? (
-					<div className={style.loader}></div>
-				) : (
-					<div onClick={onModal} id="myModal2" className={style.modal}>
-						<div className={style['modal-content']}>
-							<span id="myModalSpan2" className={style.close}>
-								&times;
-							</span>
-							<div className={style.wrapAddFormToDo}>
-								<form
-									action="#"
-									className={style.addFormToDo}
-									onSubmit={onUpadate}
-								>
-									<label htmlFor="todo">Добавить To Do</label>
-									<input
-										onChange={onChangeAddToDo}
-										id="todo"
-										type="text"
-										value={toDoChange.todo}
-										placeholder="Напичатайте что бы вы хотели сделать..."
-									/>
-									<p className={style.addFormToDoInfo}>
-										To Do должен содержать минимум 10 символов
-									</p>
-									<button disabled={!isCreating}>update</button>
-								</form>
-							</div>
-						</div>
-					</div>
-				))}
+			<Modal setShow={setShow} onChange={onChange} onChangeAdToDo={onChangeAdToDo} input={input} disabled={disabled} show={show} btn='change' />
 		</div>
 	);
 };
