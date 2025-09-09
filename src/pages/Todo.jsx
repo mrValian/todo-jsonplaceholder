@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateDataRequest, deleteItemSuccess } from '../actions';
+import { updateDataRequest, deleteItemSuccess, fetchData } from '../actions';
 import { selectToDo } from '../selectors';
 
 import style from '../app.module.css';
@@ -10,6 +10,14 @@ import { Modal } from '../component';
 
 export const Todo = () => {
 	const dispatch = useDispatch();
+	const [flag, setFlag]= useState(true);
+
+	useEffect(() => {
+		if (flag) {
+			dispatch(fetchData());
+		}
+	}, [dispatch, flag]);
+
 	const params = useParams();
 	const navigate = useNavigate();
 
@@ -34,6 +42,7 @@ export const Todo = () => {
 			}),
 		);
 		setShow(false);
+		setFlag(true);
 	};
 
 	const onChangeAdToDo = ({ target }) => {
@@ -62,6 +71,7 @@ export const Todo = () => {
 				<button
 					onClick={() => {
 						setShow(true);
+						setFlag(false);
 					}}
 				>
 					update
